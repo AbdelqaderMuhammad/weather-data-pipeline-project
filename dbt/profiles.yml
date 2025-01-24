@@ -1,0 +1,11 @@
+my_dbt_project:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "postgres"
+      user: "admin"
+      password: "password"
+      port: 5432
+      dbname: "my_database"
+      schema: "public"

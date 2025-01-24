@@ -1,0 +1,64 @@
+version: 2
+
+sources:
+  - name: weather_data_source
+    schema: public
+    tables:
+      - name: weather_data
+        columns:
+          - name: id
+            tests:
+              - not_null
+              - unique
+
+
+models:
+  - name: weather_data
+    description: Table containing weather information for various cities.
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: city_id
+        tests:
+          - not_null
+      - name: city_name
+        tests:
+          - not_null
+      - name: temperature
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: -100
+              max_value: 100
+      - name: humidity
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: wind_speed
+        tests:
+          - not_null
+          - accepted_range:
+              min_value: 0
+              max_value: 500
+      - name: description
+        tests:
+          - not_null
+      - name: measurement_time
+        tests:
+          - not_null
+      - name: extraction_time
+        tests:
+          - not_null
+
+  - name: daily_weather_metrics
+    description: Aggregates daily weather metrics by city.
+
+  - name: extreme_weather_events
+    description: Flags extreme weather conditions based on predefined thresholds.
+
+  - name: weather_trends
+    description: Shows monthly trends in temperature and humidity.
