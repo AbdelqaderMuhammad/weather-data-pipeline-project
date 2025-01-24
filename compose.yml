@@ -23,23 +23,12 @@ services:
       DBT_PORT: 5432
       DBT_DATABASE: my_database
       DBT_SCHEMA: public
-      PREFECT_API_URL: "http://prefect-server:4200/api"
     volumes:
       - ./dbt:/usr/app/dbt
       - ./app:/usr/app
     depends_on:
       - postgres
-      - prefect-server
 
-  prefect-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.prefect
-    container_name: prefect-server
-    ports:
-      - "4201:4200"
-    depends_on:
-      - postgres
 
 volumes:
   postgres_data:

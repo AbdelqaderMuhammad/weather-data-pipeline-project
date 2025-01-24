@@ -4,13 +4,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import psycopg2
+from prefect.filesystems import LocalFileSystem
 from psycopg2.extras import execute_values
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
-from prefect.blocks.system import CronSchedule
 
 
 # Weather data structure
@@ -211,5 +211,8 @@ def full_etl_flow():
     dbt_flow()
 
 
-schedule = CronSchedule(cron="*/2 * * * *")
-full_etl_flow.deploy(schedule=schedule)
+if __name__ == "__main__":
+    full_etl_flow.serve(
+        name="scheduled-etl-flow",
+        interval=120
+    )
