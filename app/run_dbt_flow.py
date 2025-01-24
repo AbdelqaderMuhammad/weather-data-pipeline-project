@@ -1,10 +1,9 @@
-from prefect import task, flow
+from prefect import task, flow, get_run_logger
 import subprocess
 import logging
 from pathlib import Path
 from datetime import datetime
 import psycopg2
-from prefect.filesystems import LocalFileSystem
 from psycopg2.extras import execute_values
 import requests
 from requests.adapters import HTTPAdapter
@@ -42,7 +41,7 @@ class WeatherDataCollector:
         self.cities = cities or self._default_cities()
         self.session = self._setup_session(max_retries, retry_backoff)
         self._setup_output_dir()
-        self._setup_logging()
+        self.logger = get_run_logger()
         self.db_config = db_config
 
     @staticmethod
@@ -56,14 +55,6 @@ class WeatherDataCollector:
 
     def _setup_output_dir(self):
         self.output_dir.mkdir(exist_ok=True)
-
-    def _setup_logging(self):
-        log_file = self.output_dir / "weather_extraction.log"
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(message)s",
-            handlers=[logging.FileHandler(log_file)]
-        )
 
     def _setup_session(self, max_retries: int, retry_backoff: int) -> requests.Session:
         session = requests.Session()
@@ -82,10 +73,10 @@ class WeatherDataCollector:
         try:
             response = self.session.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
-            logging.info(f"Successfully fetched weather data for city {city_id}")
+            self.logger.info(f"Successfully fetched weather data for city {city_id}")
             return response.json()
         except requests.RequestException as e:
-            logging.error(f"Failed to fetch weather data for city {city_id}: {e}")
+            self.logger.error(f"Failed to fetch weather data for city {city_id}: {e}")
             return None
 
     def process_weather_data(self, raw_data: Dict[str, Any]) -> Optional[WeatherData]:
@@ -101,16 +92,16 @@ class WeatherDataCollector:
                 extraction_time=datetime.utcnow().isoformat()
             )
         except (KeyError, ValueError) as e:
-            logging.warning(f"Invalid weather data for city {raw_data.get('name')}: {e}")
+            self.logger.warning(f"Invalid weather data for city {raw_data.get('name')}: {e}")
             return None
 
     def save_to_db(self, data: List[WeatherData]) -> None:
         if not data:
-            logging.warning("No weather data to save to the database.")
+            self.logger.warning("No weather data to save to the database.")
             return
 
         if not self.db_config:
-            logging.error("Database configuration is not provided.")
+            self.logger.error("Database configuration is not provided.")
             return
 
         try:
@@ -148,9 +139,9 @@ class WeatherDataCollector:
             execute_values(cursor, insert_query, values)
             connection.commit()
 
-            logging.info(f"Saved weather data for {len(data)} cities to the database.")
+            self.logger.info(f"Saved weather data for {len(data)} cities to the database.")
         except psycopg2.Error as e:
-            logging.error(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
         finally:
             if connection:
                 cursor.close()
@@ -172,16 +163,19 @@ class WeatherDataCollector:
 @task
 def extract_weather_data():
     """Extracts weather data and saves to DB"""
+    logger = get_run_logger()
     API_KEY = "4365f80a748975673df3b3945754f842"
     DB_CONFIG = {
-        "dbname": "my_database",
+        "dbname": "postgres",
         "user": "admin",
         "password": "password",
         "host": "postgres",
         "port": 5432
     }
     collector = WeatherDataCollector(api_key=API_KEY, db_config=DB_CONFIG)
+    logger.info("Starting weather data extraction.")
     collector.run()
+    logger.info("Weather data extraction completed.")
 
 
 @task
@@ -196,8 +190,8 @@ def run_dbt_command(command: str, working_dir: str):
 @flow
 def dbt_flow():
     """DBT Flow"""
-    dbt_project_dir = "/usr/app/dbt/my_dbt_project"  # Change to the location of your dbt project
-    profiles_dir = "/usr/app/dbt"  # Change to the location of your profiles.yml
+    dbt_project_dir = "/usr/app/dbt/my_dbt_project"
+    profiles_dir = "/usr/app/dbt"
 
     # Run dbt command with the correct profile directory
     command = f"dbt run --profiles-dir {profiles_dir}"

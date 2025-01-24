@@ -7,5 +7,5 @@ my_dbt_project:
       user: "admin"
       password: "password"
       port: 5432
-      dbname: "my_database"
+      dbname: "postgres"
       schema: "public"

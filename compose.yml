@@ -4,12 +4,14 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: my_database
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
 
   dbt:
     build:
@@ -18,17 +20,41 @@ services:
     container_name: dbt
     environment:
       DBT_USER: admin
-      DBT_PASSWORD: password
+      DBT_PASSWORD_FILE: /run/secrets/dbt_password
       DBT_HOST: postgres
       DBT_PORT: 5432
-      DBT_DATABASE: my_database
+      DBT_DATABASE: postgres
       DBT_SCHEMA: public
+      PREFECT_API_URL_FILE: /run/secrets/prefect_api_url
+      PREFECT_API_KEY_FILE: /run/secrets/prefect_api_key
+      PREFECT_LOGGING_LEVEL: INFO
     volumes:
       - ./dbt:/usr/app/dbt
       - ./app:/usr/app
     depends_on:
       - postgres
+    command: >
+      sh -c "
+      cd /usr/app &&
+      export PREFECT_API_URL=$(cat /run/secrets/prefect_api_url) &&
+      export PREFECT_API_KEY=$(cat /run/secrets/prefect_api_key) &&
+      python run_dbt_flow.py &
+      sleep infinity
+      "
+    secrets:
+      - dbt_password
+      - prefect_api_url
+      - prefect_api_key
 
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  dbt_password:
+    file: ./secrets/dbt_password.txt
+  prefect_api_url:
+    file: ./secrets/prefect_api_url.txt
+  prefect_api_key:
+    file: ./secrets/prefect_api_key.txt
 
 volumes:
   postgres_data:
