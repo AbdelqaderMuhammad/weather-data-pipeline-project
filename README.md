@@ -58,19 +58,6 @@ prefect_api_url.txt: Contains the Prefect API URL.
 
 prefect_api_key.txt: Contains the Prefect API key.
 
-### Set Up Environment Variables
-
-Create a `.env` file in the root directory to store sensitive data (e.g., API keys and database credentials):
-
-```env
-OPENWEATHER_API_KEY=your_api_key
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=weather_data
-DB_USER=your_username
-DB_PASSWORD=your_password
-```
-
 ## Usage
 
 ### Running the Pipeline
@@ -163,21 +150,6 @@ volumes:
 
 ```
 
-## Project Structure
+## Project Diagram
 
-```plaintext
-.
-├── dbt
-│   ├── models
-│   │   ├── staging
-│   │   └── analytics
-├── src
-│   ├── fetch_data.py
-│   ├── validate_data.py
-│   ├── load_to_postgres.py
-├── prefect_flows
-│   └── main_pipeline.py
-├── .env
-├── README.md
-```
-
+![Containerization Workflow](img.png "Containerization Workflow")
